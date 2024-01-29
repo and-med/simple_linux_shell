@@ -10,6 +10,25 @@
     sprintf(error_message, format, args); \
     app_error(error_message); \
 
+int currJobId = 1;
+
+int generateNextJobId() {
+    return currJobId++;
+}
+
+sh_job make_job(pid_t pid, int st, char* cmd) {
+    sh_job job;
+    job.id = generateNextJobId();
+    job.pid = pid;
+    job.st = st;
+    char* cmd_copy = malloc(strlen(cmd) * sizeof(char));
+    char** cmd_ptr = malloc(sizeof(char**));
+    *cmd_ptr = cmd_copy;
+    strcpy(cmd_copy, cmd);
+    job.cmd = cmd_ptr;
+    return job;
+}
+
 jobarray* ja_init(size_t size) {
     jobarray *arr = malloc(sizeof(jobarray));
     arr->array = malloc(size * sizeof(sh_job));
@@ -67,6 +86,10 @@ void ja_remove(jobarray *arr, size_t idx) {
     if (idx >= arr->size) {
         app_errorf("remove: index out of range: %d out of %d", idx, arr->size);
     }
+
+    char** tofree = arr->array[idx].cmd;
+    free(*tofree);
+    free(tofree);
 
     arr->used--;
     for (size_t i = idx; i < arr->used; i++) {
