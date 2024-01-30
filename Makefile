@@ -1,5 +1,5 @@
 CC=gcc
-OBJECTS=build/main.o build/utilities.o build/jobarray.o
+OBJECTS=build/main.o build/utilities.o build/jobarray.o build/jobmanager.o
 
 build-dir :
 	mkdir -p build

@@ -3,6 +3,7 @@
 #include<stdio.h>
 #include<unistd.h>
 #include<string.h>
+#include<sys/wait.h>
 #include"utilities.h"
 
 void unix_error(char *msg) {
@@ -33,4 +34,21 @@ pid_t Fork() {
     }
 
     return child_id;
+}
+
+pid_t reap_child(pid_t pid, int options) {
+    int status;
+    pid_t reaped_pid = waitpid(pid, &status, options);
+
+    if (reaped_pid < 0) {
+        if (errno != 10) {
+            unix_error("waitfg: waitpid error");
+        }
+
+        #ifdef DEBUG
+        printf("no processes to reap.\n");
+        #endif
+    }
+
+    return reaped_pid;
 }
