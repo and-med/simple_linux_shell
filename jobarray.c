@@ -16,11 +16,12 @@ int generateNextJobId() {
     return currJobId++;
 }
 
-sh_job make_job(pid_t pid, int st, char* cmd) {
+sh_job make_job(pid_t pid, jobstate st, jobtype type, char* cmd) {
     sh_job job;
     job.id = generateNextJobId();
     job.pid = pid;
     job.st = st;
+    job.type = type;
     char* cmd_copy = malloc(strlen(cmd) * sizeof(char));
     char** cmd_ptr = malloc(sizeof(char**));
     *cmd_ptr = cmd_copy;

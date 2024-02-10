@@ -1,5 +1,7 @@
 #include"jobarray.h"
 #include"utilities.h"
+#include<signal.h>
+#include<unistd.h>
 #define JOB_INIT_LENGTH 4
 
 static jobarray* jobs;
@@ -8,11 +10,34 @@ void init_jobs() {
     jobs = ja_init(JOB_INIT_LENGTH);
 }
 
-int record_job_start(pid_t pid, char* cmd) {
-    sh_job newJob = make_job(pid, STATE_RUNNING, cmd);
+int record_job_start(pid_t pid, char* cmd, jobtype type, sh_job *job) {
+    sh_job newJob = make_job(pid, STATE_RUNNING, type, cmd);
     ja_pushBack(jobs, newJob);
 
-    return newJob.id;
+    *job = newJob;
+    return 0;
+}
+
+int get_job_by_pid(pid_t pid, sh_job *job) {
+    int job_idx = ja_getIndexByPid(jobs, pid);
+
+    if (job_idx < 0) {
+        return -1;
+    }
+
+    *job = ja_get(jobs, job_idx);
+    return 0;
+}
+
+int get_job_by_id(int id, sh_job *job) {
+    int job_idx = ja_getIndexById(jobs, id);
+
+    if (job_idx < 0) {
+        return -1;
+    }
+
+    *job = ja_get(jobs, job_idx);
+    return 0;
 }
 
 void record_job_end(pid_t pid) {
@@ -24,32 +49,21 @@ void record_job_end(pid_t pid) {
 
     sh_job job = ja_get(jobs, toRemove);
 
-    printf("[%d] %d Done %s", job.id, job.pid, *job.cmd);
+    if (job.type != TYPE_FOREGROUND) {
+        printf("[%d] %d Done %s", job.id, job.pid, *job.cmd);
+    }
 
     ja_remove(jobs, toRemove);
 }
 
-// returns result of operation
-// 1 - success
-// 0 - failure
-int move_job_to_foreground(int id) {
-    int job_idx = ja_getIndexById(jobs, id);
+int reap_job(pid_t pid, int options) {
+    sh_job job;
 
-    if (job_idx < 0) {
-        printf("Job with id %d: not found.\n", id);
-        return 0;
+    if (get_job_by_pid(pid, &job) < 0) {
+        return -1;
     }
 
-    sh_job job = ja_get(jobs, job_idx);
-    
-    printf("%d %s", job.pid, *job.cmd);
-    pid_t reaped_pid = reap_child(job.pid, 0);
-
-    if (reaped_pid > 0) {
-        record_job_end(reaped_pid);
-    }
-    
-    return 1;
+    reap_child(pid, options);
 }
 
 void print_jobs() {
@@ -57,4 +71,8 @@ void print_jobs() {
         sh_job job = ja_get(jobs, i);
         printf("[%d] %d %s %s", job.id, job.pid, job.st == STATE_RUNNING ? "RUNNING" : "STOPPED", *job.cmd);
     }
+}
+
+void print_job(sh_job *job) {
+    printf("[%d] %d %s %s", job->id, job->pid, job->st == STATE_RUNNING ? "RUNNING" : "STOPPED", *job->cmd);
 }
